@@ -224,6 +224,26 @@ def main():
     # Sort by company then console then title for deterministic output
     entries.sort(key=lambda x: (x["company"], x["console"], x["title"].lower()))
 
+    # Skip rewrite if content identical to last week. Keeps generatedAt
+    # stable so clients do not redownload the same file.
+    import hashlib, gzip
+    raw_new = json.dumps(entries, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    new_hash = hashlib.sha256(raw_new).hexdigest()
+    try:
+        old_raw = None
+        gz_path = DATA_DIR / "roms.json.gz"
+        raw_path = DATA_DIR / "roms.json"
+        if gz_path.exists():
+            with gzip.open(gz_path, "rb") as f:
+                old_raw = f.read()
+        elif raw_path.exists():
+            old_raw = raw_path.read_bytes()
+        if old_raw is not None and hashlib.sha256(old_raw).hexdigest() == new_hash:
+            print(f"[skip] identical index ({len(entries)} files, sha256 {new_hash[:12]}), keeping old version")
+            return
+    except Exception as e:
+        print(f"[hash-check] {e}", file=sys.stderr)
+
     # Write main index + compressed (only gzip needed)
     out_main = DATA_DIR / "roms.json"
     write_compressed(out_main, entries, use_compact=True)
@@ -241,6 +261,7 @@ def main():
         "baseUrl": BASE_URL,
         "targets": TARGET_ROOTS,
         "totalFiles": len(entries),
+        "contentHash": new_hash,
         "companies": sorted(set(e["company"] for e in entries)),
         "consoles": sorted(set(e["console"] for e in entries if e["console"])),
         "byConsoleCounts": {k: len(v) for k, v in by_console.items()},
