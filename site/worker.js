@@ -68,10 +68,17 @@ self.onmessage = async (e) => {
     try {
       // 1) fetch meta first to get version for cache key
       let meta = await fetchMeta(msg.metaUrl);
-      const version = meta && meta.generatedAt ? meta.generatedAt : null;
+      let version = meta && meta.generatedAt ? meta.generatedAt : null;
 
       // 2) try IndexedDB cache
       let cached = await getCached();
+      const emptyMeta = meta && typeof meta.totalFiles === 'number' && meta.totalFiles === 0;
+      if(emptyMeta && cached && Array.isArray(cached.docs) && cached.docs.length){
+        // upstream published an empty index, keep last good cache
+        send('progress', {text: `Upstream index empty, using cached…`});
+        version = cached.version;
+        meta = { ...meta, generatedAt: cached.version, totalFiles: cached.docs.length, stale: true };
+      }
       if(cached && cached.version && cached.version === version && Array.isArray(cached.docs) && cached.docs.length){
         send('progress', {text: `Loading cached index…`});
         allDocs = cached.docs;
@@ -93,11 +100,6 @@ self.onmessage = async (e) => {
         const consoles = [...new Set(allDocs.map(d=>d.console))].sort();
         send('ready', {total: allDocs.length, companies, consoles, meta});
         return;
-      }
-      // stale version -> clear old bloat before fetching new
-      if(cached && cached.version && cached.version !== version){
-        send('progress', {text: `Updating index…`});
-        await clearCached();
       }
 
       // 3) fetch gzip (prefer .gz) with Cache API to avoid redownload
@@ -149,7 +151,30 @@ self.onmessage = async (e) => {
           if(buffer) break;
         }catch(err){ continue; }
       }
-      if(!buffer) throw new Error('Failed to fetch any index variant');
+      if(!buffer || !buffer.length){
+        if(cached && Array.isArray(cached.docs) && cached.docs.length){
+          send('progress', {text: `Fetch empty, using cached…`});
+          allDocs = cached.docs;
+          byId = new Map(allDocs.map(d=>[d.id,d]));
+          miniSearch = new MiniSearch({
+            fields: ['title','company','console','folder','searchText'],
+            storeFields: ['title','href','url','company','console','folder','size','sizeBytes','date'],
+            searchOptions: { prefix: true, fuzzy: 0.2, combineWith: 'AND' },
+            idField: 'id'
+          });
+          const CHUNK = 5000;
+          for(let i=0;i<allDocs.length;i+=CHUNK){
+            miniSearch.addAll(allDocs.slice(i, i+CHUNK));
+            await new Promise(r=> setTimeout(r, 0));
+          }
+          ready = true;
+          const companies = [...new Set(allDocs.map(d=>d.company))].sort();
+          const consoles = [...new Set(allDocs.map(d=>d.console))].sort();
+          send('ready', {total: allDocs.length, companies, consoles, meta});
+          return;
+        }
+        throw new Error('Failed to fetch any index variant');
+      }
       allDocs = buffer;
       byId = new Map(allDocs.map(d=>[d.id,d]));
       send('progress', {text: `Indexing ${allDocs.length.toLocaleString()} docs…`});
@@ -166,8 +191,8 @@ self.onmessage = async (e) => {
         send('progress', {text: `Indexing ${Math.min(i+CHUNK, allDocs.length).toLocaleString()} / ${allDocs.length.toLocaleString()}…`});
         await new Promise(r=> setTimeout(r, 0));
       }
-      // save decompressed docs to IDB for next instant open, then clean old version already cleared
-      if(version) await setCached(version, allDocs);
+      // save decompressed docs to IDB for next instant open, only if non-empty
+      if(version && allDocs.length) await setCached(version, allDocs);
       ready = true;
       const companies = [...new Set(allDocs.map(d=>d.company))].sort();
       const consoles = [...new Set(allDocs.map(d=>d.console))].sort();

@@ -33,6 +33,9 @@ jobs:
       - run: pip install -r scraper/requirements.txt
       - name: Run scraper (IP mode)
         run: python scraper/scraper.py
+      - name: Guard empty index
+        run: |
+          python -c "import json,sys; m=json.load(open('data/meta.json')); assert m.get('totalFiles',0) > 1000, f\"empty index: {m.get('totalFiles')}\"; print(f\"index ok: {m.get('totalFiles')} files\")"
       - name: Commit data if changed (only gzip + meta — smallest)
         run: |
           git config user.name "github-actions[bot]"
@@ -61,6 +64,7 @@ jobs:
           cp data/roms.json _site/data/ 2>/dev/null || echo "no roms.json"
           cp data/roms.json.gz _site/data/ 2>/dev/null || echo "no gz"
           cp data/meta.json _site/data/ 2>/dev/null || echo "no meta"
+          python -c "import json,sys; m=json.load(open('data/meta.json')); assert m.get('totalFiles',0) > 1000, 'refusing to deploy empty index'; print(f\"deploy ok: {m.get('totalFiles')} files\")"
           # fix relative paths: site expects ../data, but on Pages data is at /data
           # we keep _site/data alongside _site/index.html so ../data won't work on Pages root.
           # Patch app.js DATA_URL if needed - we copy data to _site/data and also to _site/../data via symlink trick:

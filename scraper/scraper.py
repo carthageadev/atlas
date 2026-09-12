@@ -217,6 +217,10 @@ def main():
     entries = crawl()
     print(f"[done] total files={len(entries)}")
 
+    if not entries or len(entries) < 1000:
+        print(f"[abort] too few entries ({len(entries)}), not overwriting good index", file=sys.stderr)
+        sys.exit(1)
+
     # Sort by company then console then title for deterministic output
     entries.sort(key=lambda x: (x["company"], x["console"], x["title"].lower()))
 
