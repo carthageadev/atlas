@@ -1,13 +1,13 @@
 # atlas
 
-ROM search for https://92.35.124.13.
+Search from https://92.35.124.13
 
-Live: https://carthageadev.github.io/atlas/
+Live at https://carthageadev.github.io/atlas
 
 ## How it works
-Scraper crawls the IP weekly and builds `data/roms.json.gz`. Frontend loads the gzip and searches in the browser.
+Program runs weekly and builds `data/roms.json`. Frontend loads the archive and searches in the browser.
 
-## Run locally
+## Mandatory run locally section
 ```
 pip install -r scraper/requirements.txt
 python scraper/scraper.py
@@ -18,9 +18,9 @@ python -m http.server 8000
 ## Layout
 ```
 scraper/  crawler
-data/     roms.json.gz + meta.json
-site/     static frontend
+data/     roms.json + meta.json
+site/     frontend
 ```
 
 ## Deploy
-GitHub Actions runs weekly. It scrapes and deploys to Pages.
+Actions run weekly. It fetches and builds then deploys to Pages.
