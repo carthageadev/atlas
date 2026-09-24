@@ -47,8 +47,8 @@ function render(docs, total, page){
   }
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   if(currentPage >= totalPages) currentPage = totalPages-1;
-  els.grid.innerHTML = docs.map((d,i)=> `
-    <div class="card result-card" style="animation-delay:${Math.min(i*8,120)}ms">
+  els.grid.innerHTML = docs.map(d=> `
+    <div class="card result-card">
       <div class="left">
         <div class="title" title="${escapeHtml(d.title)}">${escapeHtml(d.title)}</div>
         <div class="meta">
