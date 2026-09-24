@@ -55,7 +55,7 @@ body.hero .grid{border:0}
 .card:hover .btn{border-color:#000;color:#000}
 .card:hover .btn.primary{background:#000;color:var(--ink)}
 .left{min-width:0;flex:1}
-.title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.title{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;text-decoration:none;color:inherit}
 .title::before{content:"> ";color:var(--dim)}
 .card:hover .title::before{color:#000}
 .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px;color:var(--dim);font-size:11px}
