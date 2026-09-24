@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-ROMs Index Scraper - IP-based
-Crawls https://92.35.124.13 directly (no DNS, no cert verify) for Nintendo + SEGA
+ROMs Index Scraper - lolroms mode
+Crawls https://lolroms.com directly for Nintendo + SEGA
 Outputs: data/roms.json.gz (gzip max, mtime=0) + data/meta.json only
 """
 import json
@@ -16,7 +16,7 @@ import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-BASE_URL = "https://92.35.124.13"
+BASE_URL = "https://lolroms.com"
 # Expanded scope - common consoles + arcade (MAME, Neo Geo, etc.)
 TARGET_ROOTS = [
     "/Nintendo",
@@ -46,7 +46,7 @@ ROOT = Path(__file__).parent.parent
 DATA_DIR = ROOT / "data"
 
 HEADERS = {
-    "User-Agent": "roms-search-scraper/1.0 (+https://github.com/carthageadev/roms-search)"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
 }
 
 # Regex to detect region / languages in title: (USA), (Europe), (Japan) etc
@@ -82,7 +82,7 @@ def fetch_html(path: str) -> str:
     # fix double encoding for already encoded parts - unquote first handles it
     url = f"{BASE_URL}{encoded}"
     # print(f"GET {url}")
-    resp = requests.get(url, headers=HEADERS, verify=False, timeout=30)
+    resp = requests.get(url, headers=HEADERS, timeout=30)
     resp.raise_for_status()
     return resp.text
 
@@ -91,15 +91,16 @@ def parse_directory(html: str, current_path: str):
     folders = []
     files = []
 
-    # folders: <li class="folder"><a class="file" href="/Nintendo/3DS">3DS</a>
-    for li in soup.select("li.folder a.file"):
+    # folders: old layout li.folder > a.file, new layout li.folder > a.item
+    for li in soup.select("li.folder a.file, li.folder a.item"):
         href = li.get("href")
         if href:
             # href is already like /Nintendo/3DS
             folders.append(unquote(href))
 
-    # files: <li class='filei'><a class='file' href='...'>Title</a><div class='meta'><span>size</span><span>date</span>
-    for li in soup.select("li.filei"):
+    # files: old layout li.filei, new layout li.info
+    # both use <a class='file' href='...'>Title</a><div class='meta'><span>size</span><span>date</span>
+    for li in soup.select("li.filei, li.info"):
         a = li.select_one("a.file")
         if not a:
             continue

@@ -31,7 +31,7 @@ jobs:
           cache: pip
           cache-dependency-path: scraper/requirements.txt
       - run: pip install -r scraper/requirements.txt
-      - name: Run scraper (IP mode)
+      - name: Run scraper (lolroms mode)
         run: python scraper/scraper.py
       - name: Guard empty index
         run: |
