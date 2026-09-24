@@ -50,7 +50,7 @@ function render(docs, total, page){
   els.grid.innerHTML = docs.map(d=> `
     <div class="card result-card">
       <div class="left">
-        <div class="title" title="${escapeHtml(d.title)}">${escapeHtml(d.title)}</div>
+        <a class="title" title="${escapeHtml(d.title)}" href="${d.url}" download target="_blank" rel="noopener">${escapeHtml(d.title)}</a>
         <div class="meta">
           <span>${escapeHtml(d.company)}</span>
           <span>${escapeHtml(d.console||'-')}</span>
@@ -61,6 +61,7 @@ function render(docs, total, page){
       </div>
       <div class="actions">
         <a class="btn" href="${d.url}" target="_blank" rel="noopener">raw</a>
+        <a class="btn" href="${d.url}" download>dl</a>
         <button class="btn primary" onclick="navigator.clipboard.writeText('${d.url.replace(/'/g,"\\'")}'); this.textContent='ok'; setTimeout(()=> this.textContent='copy', 1200)">copy</button>
       </div>
     </div>
