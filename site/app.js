@@ -121,6 +121,7 @@ function initWorker(){
       msg.consoles.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; els.console.appendChild(o); });
       syncFromUrl();
       updateMode();
+      updateBtn();
       doSearch(0);
       els.q.focus();
     }
@@ -156,7 +157,12 @@ els.folder.addEventListener('input', debounce(()=> doSearch(0), 200));
 els.sortBy.addEventListener('change', ()=> doSearch(0));
 els.prev.addEventListener('click', ()=>{ if(currentPage>0) doSearch(currentPage-1); window.scrollTo({top:0, behavior:'smooth'}); });
 els.next.addEventListener('click', ()=>{ const tp=Math.ceil(lastTotal/PAGE_SIZE); if(currentPage < tp-1) doSearch(currentPage+1); window.scrollTo({top:0, behavior:'smooth'}); });
-els.clear.addEventListener('click', ()=>{ els.q.value=''; els.company.value=''; els.console.value=''; els.folder.value=''; els.sortBy.value='relevance'; doSearch(0); els.q.focus(); });
+els.clear.addEventListener('click', ()=>{
+  if(els.q.value === ''){ doSearch(0); els.q.focus(); return; }
+  els.q.value=''; els.company.value=''; els.console.value=''; els.folder.value=''; els.sortBy.value='relevance'; doSearch(0); updateBtn(); els.q.focus();
+});
+function updateBtn(){ els.clear.textContent = els.q.value === '' ? '[>]' : '[x]'; }
+els.q.addEventListener('input', updateBtn);
 
 function syncFromUrl(){
   const p=new URLSearchParams(location.search);
