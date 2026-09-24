@@ -109,8 +109,6 @@ function initWorker(){
     }
     if(msg.type==='ready'){
       setLoading(false);
-      const hc = document.getElementById('heroCount');
-      if(hc && msg.total) hc.textContent = msg.total.toLocaleString();
       els.countPill.textContent = msg.indexPending
         ? `${msg.total.toLocaleString()} files ready · full index loading…${msg.meta?` · updated ${msg.meta.generatedAt}`:''}`
         : `${msg.total.toLocaleString()} files indexed${msg.meta?` · updated ${msg.meta.generatedAt}`:''}`;
