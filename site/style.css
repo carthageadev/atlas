@@ -15,9 +15,7 @@ body.results header{position:sticky;top:0;z-index:10;flex-direction:row;border-b
 body.results .hero-block{position:absolute;visibility:hidden;opacity:0;transform:translateY(-12px);height:0;overflow:hidden}
 .ascii{margin:0 0 14px;font-family:'Courier New',Courier,monospace;font-size:12px;line-height:1.17;white-space:pre;user-select:none}
 @media(max-width:700px){.ascii{font-size:7px}}
-.hero-sub{margin-top:10px;color:var(--dim);font-size:13px}
-.cursor{display:inline-block;animation:blink 1s steps(1) infinite}
-@keyframes blink{50%{opacity:0}}
+
 .brand{display:none;text-decoration:none;font-weight:700;letter-spacing:-.02em;white-space:nowrap}
 .brand span{color:var(--dim)}
 body.results .brand{display:block}
