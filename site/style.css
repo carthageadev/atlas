@@ -37,6 +37,13 @@ body.hero .controls{display:none}
 body.hero .status-row{display:none}
 .status-row p{margin:4px 0}
 main{max-width:1180px;margin:0 auto;padding:6px 20px 60px}
+body.hero{height:100vh;height:100dvh;overflow:hidden}
+body.results{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+body.results header,body.results .controls,body.results .status-row,body.results footer{flex:none}
+body.results main{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;padding-bottom:12px}
+body.results .grid{flex:1;min-height:0;overflow-y:auto}
+body.results .pagination{flex:none}
+body.results footer{padding:8px 20px}
 body.hero main .pagination{display:none}
 .grid{display:grid;gap:0;margin-top:8px;border:1px solid var(--line)}
 body.hero .grid{border:0}
