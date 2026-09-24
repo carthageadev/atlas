@@ -21,6 +21,3 @@ scraper/  crawler
 data/     roms.json + meta.json
 site/     frontend
 ```
-
-## Deploy
-Actions run weekly. It fetches and builds then deploys to Pages.
