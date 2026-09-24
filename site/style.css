@@ -26,7 +26,7 @@ body.results .brand{display:block}
 .search-wrap button{border:0;border-left:1px solid var(--ink);background:#000;padding:13px 14px;cursor:pointer}
 .search-wrap button:hover{background:var(--ink);color:#000}
 .pill{display:inline-block;padding:5px 9px;border:1px solid var(--line);color:var(--dim);font-size:11px;white-space:nowrap}
-header .pill{border-color:var(--faint)}
+header .pill{min-width:0;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;border-color:var(--faint)}
 /* controls hidden on landing */
 .controls{display:flex;align-items:center;gap:14px;flex-wrap:wrap;max-width:1180px;margin:14px auto 4px;padding:0 20px}
 body.hero .controls{display:none}
@@ -76,6 +76,8 @@ footer a{color:var(--ink)}
 @media(max-width:700px){
   body.results header{flex-wrap:wrap}
   .search-wrap{order:3;flex-basis:100%;max-width:none}
+  #countPill{flex-basis:100%;animation:mq 7s ease-in-out infinite alternate}
+  @keyframes mq{from{text-indent:0}to{text-indent:-45%}}
   .card{align-items:flex-start;flex-direction:column;gap:8px}
   .actions{width:100%}
   .actions .btn{flex:1;text-align:center}
