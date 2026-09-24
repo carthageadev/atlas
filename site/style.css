@@ -1,8 +1,8 @@
 :root{--bg:#000;--ink:#f4f4f4;--dim:#8f8f8f;--faint:#3a3a3a;--line:#262626;--inv:#f4f4f4}
 *{box-sizing:border-box;border-radius:0!important}
 html{background:var(--bg)}
-body{margin:0;color:var(--ink);background:var(--bg);font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;min-height:100vh}
-body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;background:repeating-linear-gradient(0deg,transparent 0 3px,#ffffff06 3px 4px)}
+body{margin:0;color:var(--ink);background:var(--bg);font:13px/1.55 "Geist Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;min-height:100vh;-webkit-font-smoothing:antialiased}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;background:repeating-linear-gradient(0deg,transparent 0 3px,#ffffff07 3px 4px);opacity:.8}
 ::selection{background:var(--ink);color:#000}
 a{color:inherit}
 button,select,input{font:inherit;color:var(--ink)}
@@ -16,11 +16,11 @@ body.results .hero-block{position:absolute;visibility:hidden;opacity:0;transform
 .ascii{margin:0 0 14px;font-family:'Courier New',Courier,monospace;font-size:12px;line-height:1.17;white-space:pre;user-select:none}
 @media(max-width:700px){.ascii{font-size:7px}}
 
-.search-wrap{display:flex;align-items:center;gap:0;flex:1;width:100%;max-width:640px;border:1px solid var(--ink);background:#000}
-.prompt{padding:0 10px;color:var(--dim);user-select:none}
-.search-wrap input{flex:1;min-width:0;padding:13px 4px 13px 0;border:0;outline:0;background:#000;color:var(--ink);caret-color:var(--ink)}
-.search-wrap input::placeholder{color:var(--faint)}
-.search-wrap button{border:0;border-left:1px solid var(--ink);background:#000;padding:13px 14px;cursor:pointer}
+.search-wrap{display:flex;align-items:center;gap:0;flex:1;width:100%;max-width:640px;border:1px solid var(--ink);background:#000;box-shadow:4px 4px 0 #101010}
+.prompt{padding:0 12px;color:var(--ink);user-select:none}
+.search-wrap input{flex:1;min-width:0;padding:14px 4px 14px 0;border:0;outline:0;background:#000;color:var(--ink);caret-color:var(--ink);font-size:15px;letter-spacing:.01em}
+.search-wrap input::placeholder{color:#4a4a4a;letter-spacing:.06em}
+.search-wrap button{border:0;border-left:1px solid var(--ink);background:#000;padding:14px 16px;cursor:pointer;letter-spacing:.05em}
 .search-wrap button:hover{background:var(--ink);color:#000}
 .pill{display:inline-block;padding:5px 9px;border:1px solid var(--line);color:var(--dim);font-size:11px;white-space:nowrap}
 header .pill{min-width:0;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;border-color:var(--faint)}
@@ -55,13 +55,13 @@ body.hero .grid{border:0}
 .card:hover .btn{border-color:#000;color:#000}
 .card:hover .btn.primary{background:#000;color:var(--ink)}
 .left{min-width:0;flex:1}
-.title{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;text-decoration:none;color:inherit}
+.title{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;text-decoration:none;color:inherit;letter-spacing:-.01em;font-family:"Geist Pixel","Geist Mono",monospace;font-size:14px}
 .title::before{content:"> ";color:var(--dim)}
 .card:hover .title::before{color:#000}
 .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px;color:var(--dim);font-size:11px}
 .meta span{padding:2px 6px;border:1px solid var(--line)}
 .actions{display:flex;gap:8px;flex-shrink:0}
-.btn{padding:6px 9px;border:1px solid var(--ink);background:#000;font-size:11px;white-space:nowrap;text-decoration:none;cursor:pointer}
+.btn{padding:6px 9px;border:1px solid var(--ink);background:#000;font-size:11px;white-space:nowrap;text-decoration:none;cursor:pointer;font-family:"Geist Pixel","Geist Mono",monospace}
 .btn.primary{background:var(--ink);color:#000}
 .pagination{display:flex;align-items:center;gap:12px;margin-top:14px}
 .pagination button{padding:8px 12px;border:1px solid var(--ink);background:#000;cursor:pointer}
