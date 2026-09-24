@@ -8,7 +8,7 @@ a{color:inherit}
 button,select,input{font:inherit;color:var(--ink)}
 /* top bar: hero = centered full screen, results = sticky strip */
 header{display:flex;align-items:center;gap:16px;padding:14px max(16px,calc((100vw - 1180px)/2));background:#000}
-body.hero header{position:static;min-height:88vh;flex-direction:column;justify-content:center;align-items:center;gap:18px}
+body.hero header{flex-direction:column;justify-content:center;align-items:center;gap:18px}
 body.hero .search-wrap{flex:none;width:min(640px,100%)}
 body.results header{position:sticky;top:0;z-index:10;flex-direction:row;border-bottom:1px solid var(--line)}
 .hero-block{text-align:center;max-width:100%;overflow:hidden;transition:opacity .16s steps(2),transform .16s steps(2)}
@@ -37,7 +37,9 @@ body.hero .controls{display:none}
 body.hero .status-row{display:none}
 .status-row p{margin:4px 0}
 main{max-width:1180px;margin:0 auto;padding:6px 20px 60px}
-body.hero{height:100vh;height:100dvh;overflow:hidden}
+body.hero{height:100vh;height:100dvh;overflow:hidden;display:flex;flex-direction:column}
+body.hero header{position:static;flex:1;min-height:0;flex-direction:column;justify-content:center;align-items:center;gap:18px}
+body.hero footer{flex:none}
 body.results{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 body.results header,body.results .controls,body.results .status-row,body.results footer{flex:none}
 body.results main{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;padding-bottom:12px}
