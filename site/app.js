@@ -40,7 +40,7 @@ function render(docs, total, page){
   lastTotal = total;
   currentPage = page;
   if(document.body.classList.contains('hero')){
-    els.grid.innerHTML = `<div class="pill">type above to search ${total.toLocaleString()} files.</div>`;
+    els.grid.innerHTML = '';
     els.pageInfo.textContent = '';
     els.stats.textContent = '';
     return;
