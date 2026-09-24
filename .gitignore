@@ -2,7 +2,15 @@ __pycache__/
 *.pyc
 .venv/
 .DS_Store
-# ROM index bloat — only gzip + meta are deployed (7 MB), rest is ephemeral
+node_modules/
+dist/
+.env
+.env*.local
+.cartridge-logic/
+.vercel
+*.log
+*.tsbuildinfo
+# ROM index bloat - only gzip + meta are deployed
 data/roms.json
 data/*.br
 data/by-console/
