@@ -39,10 +39,16 @@ function setLoading(isLoading, text){
 function render(docs, total, page){
   lastTotal = total;
   currentPage = page;
+  if(document.body.classList.contains('hero')){
+    els.grid.innerHTML = `<div class="pill">type above to search ${total.toLocaleString()} files.</div>`;
+    els.pageInfo.textContent = '';
+    els.stats.textContent = '';
+    return;
+  }
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   if(currentPage >= totalPages) currentPage = totalPages-1;
-  els.grid.innerHTML = docs.map(d=> `
-    <div class="card result-card">
+  els.grid.innerHTML = docs.map((d,i)=> `
+    <div class="card result-card" style="animation-delay:${Math.min(i*8,120)}ms">
       <div class="left">
         <div class="title" title="${escapeHtml(d.title)}">${escapeHtml(d.title)}</div>
         <div class="meta">
@@ -54,15 +60,11 @@ function render(docs, total, page){
         </div>
       </div>
       <div class="actions">
-        <a class="btn" href="${d.url}" target="_blank" rel="noopener">Raw IP</a>
-        <button class="btn primary" onclick="navigator.clipboard.writeText('${d.url.replace(/'/g,"\\'")}'); this.textContent='Copied!'; setTimeout(()=> this.textContent='Copy link', 1200)">Copy link</button>
+        <a class="btn" href="${d.url}" target="_blank" rel="noopener">raw</a>
+        <button class="btn primary" onclick="navigator.clipboard.writeText('${d.url.replace(/'/g,"\\'")}'); this.textContent='ok'; setTimeout(()=> this.textContent='copy', 1200)">copy</button>
       </div>
     </div>
-  `).join('') || `<div class="pill">No results. Try “zelda”, “mario”, “sonic” or clear filters.</div>`;
-
-  if(window.gsap){
-    gsap.fromTo('.result-card', {opacity:0, y:10}, {opacity:1, y:0, duration:.28, stagger:.018, ease:'power2.out', clearProps:'transform'});
-  }
+  `).join('') || `<div class="pill">no results. try "zelda", "mario", "sonic".</div>`;
 
   const start = page * PAGE_SIZE;
   els.stats.textContent = `Showing ${total===0?0:start+1}–${Math.min(start+PAGE_SIZE, total)} of ${total.toLocaleString()} results`;
@@ -71,8 +73,19 @@ function render(docs, total, page){
   els.next.disabled = page >= totalPages-1;
 }
 
+function isActive(){
+  return els.q.value.trim() !== '' || els.company.value !== '' ||
+    els.console.value !== '' || els.folder.value.trim() !== '';
+}
+function updateMode(){
+  const active = isActive();
+  document.body.classList.toggle('hero', !active);
+  document.body.classList.toggle('results', active);
+}
+
 function doSearch(page=0){
   if(!worker) return;
+  updateMode();
   const q = els.q.value;
   const company = els.company.value;
   const consoleVal = els.console.value;
@@ -96,6 +109,8 @@ function initWorker(){
     }
     if(msg.type==='ready'){
       setLoading(false);
+      const hc = document.getElementById('heroCount');
+      if(hc && msg.total) hc.textContent = msg.total.toLocaleString();
       els.countPill.textContent = msg.indexPending
         ? `${msg.total.toLocaleString()} files ready · full index loading…${msg.meta?` · updated ${msg.meta.generatedAt}`:''}`
         : `${msg.total.toLocaleString()} files indexed${msg.meta?` · updated ${msg.meta.generatedAt}`:''}`;
@@ -107,7 +122,9 @@ function initWorker(){
       msg.companies.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; els.company.appendChild(o); });
       msg.consoles.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; els.console.appendChild(o); });
       syncFromUrl();
+      updateMode();
       doSearch(0);
+      els.q.focus();
     }
     if(msg.type==='indexReady'){
       els.countPill.textContent = `${msg.total.toLocaleString()} files indexed`;
