@@ -17,7 +17,7 @@ python -m http.server 8000
 
 ## Layout
 ```
-scraper/  crawler
+scraper/  crawler (sometimes called scraper)
 data/     roms.json + meta.json
 site/     frontend
 ```
