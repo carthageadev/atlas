@@ -3,52 +3,58 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ROM Atlas | Nintendo + SEGA</title>
+<title>roms_tn - search</title>
 <link rel="stylesheet" href="./style.css">
-<meta name="description" content="Fast search over Nintendo & SEGA ROMs from 92.35.124.13 — 67k files indexed weekly">
+<meta name="description" content="roms_tn - terminal search over 153k roms">
 </head>
-<body>
-<header>
-  <a class="brand" href="./"><span class="brand-mark">RA</span><span><strong>ROM</strong> Atlas<small>Nintendo + SEGA</small></span></a>
-  <div class="search-wrap">
-    <input id="q" type="text" placeholder="Search &quot;zelda&quot;, &quot;mario&quot;, &quot;sonic&quot; ... (instant)" autocomplete="off">
-    <button id="clearBtn" type="button">Clear</button>
+<body class="hero">
+<header id="topbar">
+  <div class="hero-block" aria-hidden="true">
+<pre class="ascii">                    ▄
+▄▀▄ ▄▀▄ ▄▀▄▀▄ ▄▀▀   █▄  ▄▀▄
+▌▀▄ ▐ ▓ ▓ ▌ ▌ ▀▀▄   ▐ ▄ ▓ ▌
+▀ ▀  ▀▀ ▀ ▀ ▀ ▀▀▀ ▀  ▀▀ ▌ ▀</pre>
+    <div class="hero-sub">&gt; <span id="heroCount">153,293</span> roms indexed<span class="cursor">_</span></div>
   </div>
+  <a class="brand" href="./">roms<span>_tn</span></a>
+  <div class="search-wrap">
+    <span class="prompt" aria-hidden="true">&gt;</span>
+    <input id="q" type="text" placeholder="search roms..." autocomplete="off" spellcheck="false">
+    <button id="clearBtn" type="button">[x]</button>
+  </div>
+  <span class="pill" id="countPill">boot...</span>
 </header>
 
 <div class="controls">
-  <label>Company <select id="companyFilter"><option value="">All companies</option></select></label>
-  <label>Console <select id="consoleFilter"><option value="">All consoles</option></select></label>
-  <label>Folder <input id="folderFilter" type="text" placeholder="e.g. /Nintendo/Wii"></label>
-  <label>Sort by <select id="sortBy">
-    <option value="relevance">Relevance</option>
-    <option value="title-asc">Title A→Z</option>
-    <option value="title-desc">Title Z→A</option>
-    <option value="console-asc">Console A→Z</option>
-    <option value="company-asc">Company A→Z</option>
-    <option value="size-desc">Size ↓</option>
-    <option value="size-asc">Size ↑</option>
-    <option value="date-desc">Date ↓</option>
+  <label>company <select id="companyFilter"><option value="">all</option></select></label>
+  <label>console <select id="consoleFilter"><option value="">all</option></select></label>
+  <label>folder <input id="folderFilter" type="text" placeholder="/Nintendo/Wii"></label>
+  <label>sort <select id="sortBy">
+    <option value="relevance">relevance</option>
+    <option value="title-asc">title a-z</option>
+    <option value="title-desc">title z-a</option>
+    <option value="console-asc">console a-z</option>
+    <option value="company-asc">company a-z</option>
+    <option value="size-desc">size desc</option>
+    <option value="size-asc">size asc</option>
+    <option value="date-desc">date desc</option>
   </select></label>
-  <span class="pill" id="countPill">Loading index...</span>
 </div>
 
-<div class="status-row"><p id="stats"></p><p id="updated">Preparing index...</p></div>
+<div class="status-row"><p id="stats"></p><p id="updated"></p></div>
 <main>
   <div id="grid" class="grid"></div>
   <div class="pagination">
-    <button id="prevBtn">← Prev</button>
+    <button id="prevBtn">[&lt;] prev</button>
     <span id="pageInfo" class="pill"></span>
-    <button id="nextBtn">Next →</button>
+    <button id="nextBtn">next [&gt;]</button>
   </div>
 </main>
 
 <footer>
-  <div>Indexed weekly via GitHub Actions · <a href="./data/meta.json">Index metadata</a></div>
-  <div class="footer-note">Search by title, company, console, or folder.</div>
+  <div>roms_tn · weekly index · <a href="./data/meta.json">meta.json</a></div>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
 <script src="./app.js"></script>
 </body>
 </html>
