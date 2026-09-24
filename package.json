@@ -1,0 +1,30 @@
+{
+	"name": "roms-tn",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "tsc --noEmit && vite build",
+		"preview": "vite preview",
+		"check": "biome check .",
+		"check:unsafe": "biome check --write --unsafe .",
+		"check:write": "biome check --write .",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.2.5",
+		"@tailwindcss/vite": "^4.0.15",
+		"@types/node": "^26.4.0",
+		"@types/react": "^19.0.0",
+		"@types/react-dom": "^19.0.0",
+		"@vitejs/plugin-react": "^4.4.0",
+		"tailwindcss": "^4.0.15",
+		"typescript": "^5.8.2",
+		"vite": "^6.2.0"
+	}
+}

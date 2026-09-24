@@ -2,13 +2,18 @@ name: scrape-and-deploy
 
 on:
   schedule:
-    - cron: '0 3 * * 1'  # weekly Monday 03:00 UTC
+    - cron: '0 3 * * 1'
   workflow_dispatch:
   push:
     branches: [main]
     paths:
       - 'scraper/**'
-      - 'site/**'
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'package.json'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
       - '.github/workflows/scrape.yml'
 
 permissions:
@@ -31,18 +36,16 @@ jobs:
           cache: pip
           cache-dependency-path: scraper/requirements.txt
       - run: pip install -r scraper/requirements.txt
-      - name: Run scraper (lolroms mode)
+      - name: Run scraper
         run: python scraper/scraper.py
       - name: Guard empty index
         run: |
-          python -c "import json,sys; m=json.load(open('data/meta.json')); assert m.get('totalFiles',0) > 1000, f\"empty index: {m.get('totalFiles')}\"; print(f\"index ok: {m.get('totalFiles')} files\")"
-      - name: Commit data if changed (only gzip + meta — smallest)
+          python -c "import json; m=json.load(open('data/meta.json')); assert m.get('totalFiles',0) > 1000, f\"empty index: {m.get('totalFiles')}\"; print(f\"index ok: {m.get('totalFiles')} files\")"
+      - name: Commit data if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/roms.json.gz data/meta.json || true
-          # also add raw roms.json if present (optional, not needed for deploy)
-          git add data/roms.json 2>/dev/null || true
+          git add data/roms.json.gz data/meta.json
           git diff --cached --quiet || git commit -m "chore: update index $(date -u +%Y-%m-%dT%H:%M:%SZ) [skip ci]"
           git push || true
 
@@ -57,23 +60,24 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-      - name: Prepare Pages artifact (site + data)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: bun
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Build frontend
+        run: bun run build
+      - name: Prepare Pages artifact
         run: |
-          mkdir -p _site/data
-          cp -r site/* _site/
-          cp data/roms.json _site/data/ 2>/dev/null || echo "no roms.json"
-          cp data/roms.json.gz _site/data/ 2>/dev/null || echo "no gz"
-          cp data/meta.json _site/data/ 2>/dev/null || echo "no meta"
-          python -c "import json,sys; m=json.load(open('data/meta.json')); assert m.get('totalFiles',0) > 1000, 'refusing to deploy empty index'; print(f\"deploy ok: {m.get('totalFiles')} files\")"
-          # fix relative paths: site expects ../data, but on Pages data is at /data
-          # we keep _site/data alongside _site/index.html so ../data won't work on Pages root.
-          # Patch app.js DATA_URL if needed - we copy data to _site/data and also to _site/../data via symlink trick:
-          # easier: copy data into _site and patch index to use ./data
-          sed -i "s|\"../data/|\"./data/|g" _site/app.js || true
-          ls -lh _site/data/ || true
+          python -c "import json; m=json.load(open('data/meta.json')); assert m.get('totalFiles',0) > 1000, 'refusing to deploy empty index'; print(f\"deploy ok: {m.get('totalFiles')} files\")"
+          mkdir -p dist/data
+          cp data/roms.json.gz dist/data/
+          cp data/meta.json dist/data/
+          ls -lh dist/data/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: dist
       - id: deployment
         uses: actions/deploy-pages@v4
