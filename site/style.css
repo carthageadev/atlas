@@ -13,7 +13,8 @@ body.hero .search-wrap{flex:none;width:min(640px,100%)}
 body.results header{position:sticky;top:0;z-index:10;flex-direction:row;border-bottom:1px solid var(--line)}
 .hero-block{text-align:center;max-width:100%;overflow:hidden;transition:opacity .16s steps(2),transform .16s steps(2)}
 body.results .hero-block{position:absolute;visibility:hidden;opacity:0;transform:translateY(-12px);height:0;overflow:hidden}
-.ascii{margin:0 0 14px;color:var(--ink);font-size:clamp(12px,2.6vw,22px);line-height:1.2;white-space:pre;user-select:none}
+.ascii{margin:0 0 14px;font-family:'Courier New',Courier,monospace;font-size:12px;line-height:1.17;white-space:pre;user-select:none}
+@media(max-width:700px){.ascii{font-size:7px}}
 .hero-sub{margin-top:10px;color:var(--dim);font-size:13px}
 .cursor{display:inline-block;animation:blink 1s steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
@@ -68,7 +69,6 @@ footer a{color:var(--ink)}
 @media(max-width:700px){
   body.results header{flex-wrap:wrap}
   .search-wrap{order:3;flex-basis:100%;max-width:none}
-  .ascii{font-size:3.4px}
   .card{align-items:flex-start;flex-direction:column;gap:8px}
   .actions{width:100%}
   .actions .btn{flex:1;text-align:center}
