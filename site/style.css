@@ -47,14 +47,13 @@ body.hero main .pagination{display:none}
 .grid{display:grid;gap:0;margin-top:8px;border:1px solid var(--line)}
 body.hero .grid{border:0}
 .grid .pill{border:0}
-.card{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 12px;border-bottom:1px solid var(--line);background:#000;animation:rowin .12s steps(2) both}
+.card{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 12px;border-bottom:1px solid var(--line);background:#000}
 .card:last-child{border-bottom:0}
 .card:hover{background:var(--ink);color:#000}
 .card:hover .meta{color:#000}
 .card:hover .meta span{border-color:#00000033}
 .card:hover .btn{border-color:#000;color:#000}
 .card:hover .btn.primary{background:#000;color:var(--ink)}
-@keyframes rowin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .left{min-width:0;flex:1}
 .title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
 .title::before{content:"> ";color:var(--dim)}
