@@ -96,7 +96,9 @@ function initWorker(){
     }
     if(msg.type==='ready'){
       setLoading(false);
-      els.countPill.textContent = `${msg.total.toLocaleString()} files indexed${msg.meta?` · updated ${msg.meta.generatedAt}`:''}`;
+      els.countPill.textContent = msg.indexPending
+        ? `${msg.total.toLocaleString()} files ready · full index loading…${msg.meta?` · updated ${msg.meta.generatedAt}`:''}`
+        : `${msg.total.toLocaleString()} files indexed${msg.meta?` · updated ${msg.meta.generatedAt}`:''}`;
       if(msg.meta?.generatedAt){
         const date = new Date(msg.meta.generatedAt);
         els.updated.textContent = `Last scrape: ${Number.isNaN(date.getTime()) ? msg.meta.generatedAt : date.toLocaleString()}`;
@@ -106,6 +108,10 @@ function initWorker(){
       msg.consoles.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; els.console.appendChild(o); });
       syncFromUrl();
       doSearch(0);
+    }
+    if(msg.type==='indexReady'){
+      els.countPill.textContent = `${msg.total.toLocaleString()} files indexed`;
+      doSearch(currentPage);
     }
     if(msg.type==='error'){
       setLoading(false);

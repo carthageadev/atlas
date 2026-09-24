@@ -5,6 +5,7 @@ let allDocs = [];
 let byId = new Map();
 let miniSearch = null;
 let ready = false;
+let indexReady = false;
 
 function send(type, payload){ self.postMessage({type, ...payload}); }
 
@@ -62,6 +63,36 @@ async function fetchMeta(url){
   return null;
 }
 
+function newIndex(){
+  return new MiniSearch({
+    fields: ['title','company','console','folder','searchText'],
+    storeFields: ['title','href','url','company','console','folder','size','sizeBytes','date'],
+    searchOptions: { prefix: true, fuzzy: 0.2, combineWith: 'AND' },
+    idField: 'id'
+  });
+}
+
+function sendReady(meta, indexPending){
+  ready = true;
+  const companies = [...new Set(allDocs.map(d=>d.company))].sort();
+  const consoles = [...new Set(allDocs.map(d=>d.console))].sort();
+  send('ready', {total: allDocs.length, companies, consoles, meta, indexPending});
+}
+
+// Build full-text index without blocking searches. Substring search
+// serves queries until this finishes, then MiniSearch takes over.
+async function buildFullIndex(){
+  indexReady = false;
+  miniSearch = newIndex();
+  const CHUNK = 5000;
+  for(let i=0;i<allDocs.length;i+=CHUNK){
+    miniSearch.addAll(allDocs.slice(i, i+CHUNK));
+    await new Promise(r=> setTimeout(r, 0));
+  }
+  indexReady = true;
+  send('indexReady', {total: allDocs.length});
+}
+
 self.onmessage = async (e) => {
   const msg = e.data;
   if (msg.type === 'load') {
@@ -80,25 +111,10 @@ self.onmessage = async (e) => {
         meta = { ...meta, generatedAt: cached.version, totalFiles: cached.docs.length, stale: true };
       }
       if(cached && cached.version && cached.version === version && Array.isArray(cached.docs) && cached.docs.length){
-        send('progress', {text: `Loading cached index…`});
         allDocs = cached.docs;
         byId = new Map(allDocs.map(d=>[d.id,d]));
-        miniSearch = new MiniSearch({
-          fields: ['title','company','console','folder','searchText'],
-          storeFields: ['title','href','url','company','console','folder','size','sizeBytes','date'],
-          searchOptions: { prefix: true, fuzzy: 0.2, combineWith: 'AND' },
-          idField: 'id'
-        });
-        const CHUNK = 5000;
-        for(let i=0;i<allDocs.length;i+=CHUNK){
-          miniSearch.addAll(allDocs.slice(i, i+CHUNK));
-          if(i % 20000 === 0) send('progress', {text: `Indexing cached ${Math.min(i+CHUNK, allDocs.length).toLocaleString()} / ${allDocs.length.toLocaleString()}…`});
-          await new Promise(r=> setTimeout(r, 0));
-        }
-        ready = true;
-        const companies = [...new Set(allDocs.map(d=>d.company))].sort();
-        const consoles = [...new Set(allDocs.map(d=>d.console))].sort();
-        send('ready', {total: allDocs.length, companies, consoles, meta});
+        sendReady(meta, true);
+        await buildFullIndex();
         return;
       }
 
@@ -153,50 +169,20 @@ self.onmessage = async (e) => {
       }
       if(!buffer || !buffer.length){
         if(cached && Array.isArray(cached.docs) && cached.docs.length){
-          send('progress', {text: `Fetch empty, using cached…`});
           allDocs = cached.docs;
           byId = new Map(allDocs.map(d=>[d.id,d]));
-          miniSearch = new MiniSearch({
-            fields: ['title','company','console','folder','searchText'],
-            storeFields: ['title','href','url','company','console','folder','size','sizeBytes','date'],
-            searchOptions: { prefix: true, fuzzy: 0.2, combineWith: 'AND' },
-            idField: 'id'
-          });
-          const CHUNK = 5000;
-          for(let i=0;i<allDocs.length;i+=CHUNK){
-            miniSearch.addAll(allDocs.slice(i, i+CHUNK));
-            await new Promise(r=> setTimeout(r, 0));
-          }
-          ready = true;
-          const companies = [...new Set(allDocs.map(d=>d.company))].sort();
-          const consoles = [...new Set(allDocs.map(d=>d.console))].sort();
-          send('ready', {total: allDocs.length, companies, consoles, meta});
+          sendReady(meta, true);
+          await buildFullIndex();
           return;
         }
         throw new Error('Failed to fetch any index variant');
       }
       allDocs = buffer;
       byId = new Map(allDocs.map(d=>[d.id,d]));
-      send('progress', {text: `Indexing ${allDocs.length.toLocaleString()} docs…`});
-
-      miniSearch = new MiniSearch({
-        fields: ['title','company','console','folder','searchText'],
-        storeFields: ['title','href','url','company','console','folder','size','sizeBytes','date'],
-        searchOptions: { prefix: true, fuzzy: 0.2, combineWith: 'AND' },
-        idField: 'id'
-      });
-      const CHUNK = 5000;
-      for(let i=0;i<allDocs.length;i+=CHUNK){
-        miniSearch.addAll(allDocs.slice(i, i+CHUNK));
-        send('progress', {text: `Indexing ${Math.min(i+CHUNK, allDocs.length).toLocaleString()} / ${allDocs.length.toLocaleString()}…`});
-        await new Promise(r=> setTimeout(r, 0));
-      }
-      // save decompressed docs to IDB for next instant open, only if non-empty
+      sendReady(meta, true);
       if(version && allDocs.length) await setCached(version, allDocs);
-      ready = true;
-      const companies = [...new Set(allDocs.map(d=>d.company))].sort();
-      const consoles = [...new Set(allDocs.map(d=>d.console))].sort();
-      send('ready', {total: allDocs.length, companies, consoles, meta});
+      await buildFullIndex();
+      return;
     } catch(err){
       send('error', {error: String(err.stack||err)});
     }
@@ -208,7 +194,7 @@ self.onmessage = async (e) => {
     let docs;
     let scores = new Map();
     const trimmed = (q||'').trim();
-    if(trimmed){
+    if(trimmed && indexReady && miniSearch){
       try{
         const results = miniSearch.search(trimmed);
         scores = new Map(results.map(r=>[r.id, r.score]));
@@ -224,6 +210,11 @@ self.onmessage = async (e) => {
         const low = trimmed.toLowerCase();
         docs = allDocs.filter(d=> d.searchText.includes(low));
       }
+    } else if(trimmed){
+      // fast mode: full-text index still building, substring over all docs
+      const low = trimmed.toLowerCase();
+      docs = allDocs.filter(d=> d.searchText.includes(low));
+      docs.forEach(d=> d._score = 0);
     } else {
       docs = allDocs.slice();
       docs.forEach(d=> d._score = 0);
