@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 @theme {
 	--font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -44,7 +44,7 @@ input {
 
 .ascii {
 	font-variant-ligatures: none;
-	letter-spacing: 0;
+	letter-spacing: 0.01em;
 	line-height: 1;
 	white-space: pre;
 }
