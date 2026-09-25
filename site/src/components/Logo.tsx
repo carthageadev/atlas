@@ -8,12 +8,13 @@ const MARK = [
 
 export function BigLogo() {
 	return (
-		<div aria-label="roms.tn" className="relative inline-block" role="img">
+		<div aria-label="atlas" className="relative inline-block" role="img">
 			<pre className="ascii select-none text-left text-[9px] text-neutral-100 sm:text-[13px] md:text-[15px]">
 				{MARK.map((line, index) => (
-					<div className="logo-line" key={line} style={{ animationDelay: `${100 + index * 75}ms` }}>
+					<span className="logo-line" key={line} style={{ animationDelay: `${100 + index * 75}ms` }}>
 						{line}
-					</div>
+						{"\n"}
+					</span>
 				))}
 			</pre>
 		</div>
@@ -28,7 +29,7 @@ export function MiniLogo({ onClick }: { onClick?: () => void }) {
 			onClick={onClick}
 			type="button"
 		>
-			roms<span className="text-acc">/</span>
+			atlas<span className="text-acc">/</span>
 		</button>
 	);
 }
