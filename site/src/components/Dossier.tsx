@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { crc32 } from "../lib/hash";
 import type { RomEntry } from "../lib/roms";
 
@@ -21,7 +21,7 @@ export function Dossier({ rom }: { rom: RomEntry }) {
 
 	return (
 		<article>
-			<p className="text-[10px] uppercase tracking-[0.18em] text-neutral-600">roms.tn / index record</p>
+			<p className="text-[10px] uppercase tracking-[0.18em] text-neutral-600">atlas record</p>
 			<h2 className="mt-8 max-w-xl text-2xl leading-snug tracking-[-0.03em] text-neutral-100 sm:text-3xl">{rom.title}</h2>
 			<p className="mt-3 break-all text-[12px] text-acc-dim">{rom.url}</p>
 

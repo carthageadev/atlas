@@ -66,7 +66,7 @@ export default function App() {
 			if (deferredQuery.trim()) url.searchParams.set("q", deferredQuery.trim());
 			else url.searchParams.delete("q");
 			window.history.replaceState(null, "", url.toString());
-			document.title = deferredQuery.trim() ? `${deferredQuery.trim()} / atlas` : "atlas / game index";
+			document.title = deferredQuery.trim() ? `${deferredQuery.trim()} - atlas` : "atlas";
 		}, 180);
 		return () => window.clearTimeout(timer);
 	}, [deferredQuery]);
