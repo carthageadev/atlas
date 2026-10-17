@@ -3,7 +3,7 @@ import { Dossier } from "./components/Dossier";
 import { BigLogo, MiniLogo } from "./components/Logo";
 import { ResultItem } from "./components/ResultItem";
 import { SearchBar } from "./components/SearchBar";
-import { loadRomIndex, type RomEntry, type RomSearchResult, searchRoms } from "./lib/roms";
+import { loadRomIndex, type RomEntry, type RomSearchResult, romDownloadUrl, searchRoms } from "./lib/roms";
 
 const MAX_RESULTS = 80;
 
@@ -86,7 +86,7 @@ export default function App() {
 	const openRom = useCallback((rom: RomEntry) => {
 		setOpen(rom);
 		const request = document.createElement("iframe");
-		request.src = rom.url;
+		request.src = romDownloadUrl(rom);
 		request.title = `download ${rom.id}`;
 		request.setAttribute("aria-hidden", "true");
 		request.style.display = "none";

@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import type { RomHit } from "../lib/roms";
+import { type RomHit, romYear } from "../lib/roms";
 import { Highlight } from "./Highlight";
 
 interface Props {
@@ -28,7 +28,7 @@ export const ResultItem = forwardRef<HTMLLIElement, Props>(function ResultItem(
 					</span>
 				</span>
 				<span className="pl-3 text-right text-[10px] uppercase tracking-[0.1em] text-neutral-500 sm:text-[11px]">
-					<span className={hit.metaHits.has("year") ? "text-acc" : "text-neutral-500"}>{rom.date?.slice(-4) ?? "—"}</span>
+					<span className={hit.metaHits.has("year") ? "text-acc" : "text-neutral-500"}>{romYear(rom) ?? "—"}</span>
 					<span className="mx-2 text-neutral-800">/</span>
 					<span>{rom.size || "—"}</span>
 				</span>

@@ -1,14 +1,11 @@
 export interface RomEntry {
+	/** Path on the source, for example "/Nintendo/Wii/Wii Sports (USA).7z". */
 	id: string;
 	title: string;
-	href: string;
-	url: string;
 	company: string;
 	console: string;
 	folder: string;
-	folderParts?: string[];
 	size?: string;
-	sizeBytes?: number;
 	date?: string;
 	searchText: string;
 }
@@ -25,8 +22,19 @@ export interface AtlasMeta {
 const REMOTE_DATA_URL = "https://carthageadev.github.io/atlas/data";
 const LOCAL_DATA_URL = "/atlas/data";
 const DATA_CACHE = "roms-tn-atlas-v1";
+const SOURCE_ORIGIN = (import.meta.env.VITE_SOURCE_ORIGIN?.trim() || "https://lolroms.com").replace(/\/$/, "");
 
 let inFlight: Promise<RomIndex> | null = null;
+
+/** Direct download link, built from the rom path so it survives index changes. */
+export function romDownloadUrl(rom: Pick<RomEntry, "id">): string {
+	return `${SOURCE_ORIGIN}/?file=${encodeURIComponent(rom.id.replace(/^\//, ""))}`;
+}
+
+/** Four digit year from the index date, or null when there is none. */
+export function romYear(rom: Pick<RomEntry, "date">): string | null {
+	return rom.date?.match(/(?:19|20)\d{2}/)?.[0] ?? null;
+}
 
 export interface RomIndex {
 	meta: AtlasMeta | null;
@@ -54,6 +62,19 @@ async function fetchMeta(base: string, signal?: AbortSignal): Promise<AtlasMeta 
 	}
 }
 
+/** Keep only the current index in Cache Storage so old versions do not pile up. */
+async function pruneCache(keep: string): Promise<void> {
+	try {
+		const cache = await caches.open(DATA_CACHE);
+		const current = new URL(keep, window.location.href).href;
+		for (const request of await cache.keys()) {
+			if (request.url !== current) await cache.delete(request);
+		}
+	} catch {
+		// Cache storage is optional.
+	}
+}
+
 function formatBytes(bytes: number): string {
 	if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 	return `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -72,6 +93,7 @@ async function fetchRoms(base: string, version: string | undefined, onProgress: 
 			if (response) {
 				source = "cache";
 				onProgress("loading cached roms.json.gz - no update fetch needed");
+				await pruneCache(cacheKey);
 			}
 		} catch {
 			response = null;
@@ -86,6 +108,7 @@ async function fetchRoms(base: string, version: string | undefined, onProgress: 
 			try {
 				const cache = await caches.open(DATA_CACHE);
 				await cache.put(cacheKey, response.clone());
+				await pruneCache(cacheKey);
 			} catch {
 				// Cache storage is optional; the network response still works.
 			}
@@ -264,8 +287,8 @@ export function parseQuery(query: string): ParsedQuery {
 }
 
 function dateYear(rom: RomEntry): number | null {
-	const match = rom.date?.match(/(19|20)\d{2}/);
-	return match ? Number(match[0]) : null;
+	const year = romYear(rom);
+	return year ? Number(year) : null;
 }
 
 const PLATFORM_ALIASES: Record<string, string[]> = {
