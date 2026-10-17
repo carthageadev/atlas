@@ -4,29 +4,62 @@ on:
   schedule:
     - cron: '0 3 * * 1'
   workflow_dispatch:
+    inputs:
+      allow_shrink:
+        description: Accept an index that is much smaller than the last one
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths:
       - 'scraper/**'
       - 'site/**'
-      - 'index.html'
       - 'package.json'
+      - 'bun.lock'
       - 'vite.config.ts'
       - 'tsconfig.json'
       - '.github/workflows/scrape.yml'
 
 permissions:
-  contents: write
-  pages: write
-  id-token: write
+  contents: read
 
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
-  scrape:
+  changes:
     runs-on: ubuntu-latest
+    outputs:
+      scrape: ${{ steps.filter.outputs.scrape }}
+    steps:
+      - id: filter
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Scheduled and manual runs always scrape. A push only scrapes when
+          # the scraper itself changed, so site tweaks do not recrawl the source.
+          scrape=true
+          if [ "$EVENT" = "push" ] && files=$(gh api "repos/$REPO/compare/$BEFORE...$AFTER" --jq '.files[].filename'); then
+            if echo "$files" | grep -qE '^(scraper/|\.github/workflows/scrape\.yml$)'; then
+              scrape=true
+            else
+              scrape=false
+            fi
+          fi
+          echo "scrape=$scrape" >> "$GITHUB_OUTPUT"
+
+  scrape:
+    needs: changes
+    if: needs.changes.outputs.scrape == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -35,23 +68,43 @@ jobs:
           cache: pip
           cache-dependency-path: scraper/requirements.txt
       - run: pip install -r scraper/requirements.txt
-      - name: Run scraper
-        run: python scraper/scraper.py
-      - name: Guard empty index
+      - name: Test scraper
+        run: python -m unittest discover -s scraper/tests
+      - name: Build index
+        env:
+          ALLOW_SHRINK: ${{ inputs.allow_shrink }}
         run: |
-          python -c "import json; m=json.load(open('data/meta.json')); assert m.get('totalFiles',0) > 1000, f\"empty index: {m.get('totalFiles')}\"; print(f\"index ok: {m.get('totalFiles')} files\")"
-      - name: Commit data if changed
+          args=""
+          if [ "$ALLOW_SHRINK" = "true" ]; then args="--allow-shrink"; fi
+          python scraper/scraper.py $args
+      - name: Commit index
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/roms.json.gz data/meta.json
-          git diff --cached --quiet || git commit -m "chore: update index $(date -u +%Y-%m-%dT%H:%M:%SZ) [skip ci]"
-          git push || true
+          if git diff --cached --quiet; then
+            echo "index unchanged"
+            exit 0
+          fi
+          git commit -m "chore: update index $(date -u +%Y-%m-%dT%H:%M:%SZ) [skip ci]"
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            git pull --rebase origin main
+          done
+          echo "could not push the index" >&2
+          exit 1
 
   deploy:
-    needs: scrape
-    if: always()
+    needs: [changes, scrape]
+    if: ${{ !cancelled() && needs.changes.result == 'success' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
