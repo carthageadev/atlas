@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { crc32 } from "../lib/hash";
 import type { RomEntry } from "../lib/roms";
 

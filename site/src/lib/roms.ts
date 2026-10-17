@@ -1,4 +1,4 @@
-﻿export interface RomEntry {
+export interface RomEntry {
 	id: string;
 	title: string;
 	href: string;

@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Dossier } from "./components/Dossier";
 import { BigLogo, MiniLogo } from "./components/Logo";
 import { ResultItem } from "./components/ResultItem";
