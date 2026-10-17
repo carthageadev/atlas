@@ -117,6 +117,8 @@ jobs:
           bun-version: latest
       - name: Install dependencies
         run: bun install --frozen-lockfile
+      - name: Test frontend
+        run: bun test site/tests
       - name: Build frontend
         run: bun run build
       - name: Prepare Pages artifact
