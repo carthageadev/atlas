@@ -2,17 +2,30 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent }
 import { Dossier } from "./components/Dossier";
 import { BigLogo, MiniLogo } from "./components/Logo";
 import { ResultItem } from "./components/ResultItem";
+import { FilterBar } from "./components/FilterBar";
 import { SearchBar } from "./components/SearchBar";
-import { loadRomIndex, type RomEntry, type RomSearchResult, romDownloadUrl, searchRoms } from "./lib/roms";
+import { SystemPicker } from "./components/SystemPicker";
+import { loadRomIndex, type RomEntry, type RomSearchResult, romDownloadUrl, type SortMode, searchRoms } from "./lib/roms";
+import { buildFacets, buildSystemIndex, parseScope, type Scope, scopeKey, scopeLabel } from "./lib/systems";
 
-const MAX_RESULTS = 80;
+const PAGE_SIZE = 100;
+const SORT_MODES: SortMode[] = ["best", "az", "size", "added"];
+
+function initialParam(name: string) {
+	try {
+		return new URLSearchParams(window.location.search).get(name);
+	} catch {
+		return null;
+	}
+}
 
 function initialQuery() {
-	try {
-		return new URLSearchParams(window.location.search).get("q") ?? "";
-	} catch {
-		return "";
-	}
+	return initialParam("q") ?? "";
+}
+
+function initialSort(): SortMode {
+	const value = initialParam("sort");
+	return SORT_MODES.find((mode) => mode === value) ?? "best";
 }
 
 function emptyResult(): RomSearchResult {
@@ -26,6 +39,9 @@ export default function App() {
 	const [dataSource, setDataSource] = useState("waiting for index");
 	const [status, setStatus] = useState("connecting to data index");
 	const [loadError, setLoadError] = useState<string | null>(null);
+	const [scope, setScope] = useState<Scope | null>(() => parseScope(initialParam("s")));
+	const [sort, setSort] = useState<SortMode>(initialSort);
+	const [shown, setShown] = useState(PAGE_SIZE);
 	const [selected, setSelected] = useState(0);
 	const [open, setOpen] = useState<RomEntry | null>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -56,32 +72,53 @@ export default function App() {
 		return () => window.clearTimeout(timer);
 	}, [query]);
 
+	const systemIndex = useMemo(() => buildSystemIndex(roms), [roms]);
+	const scopeId = scope ? scopeKey(scope) : "";
+
 	useEffect(() => {
 		setSelected(0);
-	}, [deferredQuery]);
+		setShown(PAGE_SIZE);
+	}, [deferredQuery, scopeId, sort]);
 
 	useEffect(() => {
 		const timer = window.setTimeout(() => {
 			const url = new URL(window.location.href);
-			if (deferredQuery.trim()) url.searchParams.set("q", deferredQuery.trim());
+			const text = deferredQuery.trim();
+			if (text) url.searchParams.set("q", text);
 			else url.searchParams.delete("q");
+			if (scopeId) url.searchParams.set("s", scopeId);
+			else url.searchParams.delete("s");
+			if (sort !== "best") url.searchParams.set("sort", sort);
+			else url.searchParams.delete("sort");
 			window.history.replaceState(null, "", url.toString());
-			document.title = deferredQuery.trim() ? `${deferredQuery.trim()} - atlas` : "atlas";
+			const label = scope ? scopeLabel(scope, systemIndex) : "";
+			document.title = [text, label, "atlas"].filter(Boolean).join(" - ");
 		}, 180);
 		return () => window.clearTimeout(timer);
-	}, [deferredQuery]);
+	}, [deferredQuery, scope, scopeId, sort, systemIndex]);
 
 	useEffect(() => {
 		inputRef.current?.focus();
 	}, []);
 
 	const result = useMemo(() => {
-		if (!deferredQuery.trim() || roms.length === 0) return emptyResult();
-		return searchRoms(roms, deferredQuery);
-	}, [deferredQuery, roms]);
+		if ((!deferredQuery.trim() && !scope) || roms.length === 0) return emptyResult();
+		return searchRoms(roms, deferredQuery, { scope, sort });
+	}, [deferredQuery, roms, scope, sort]);
 	const hits = result.hits;
-	const visibleHits = hits.slice(0, MAX_RESULTS);
+	const hasTerms = result.parsed.terms.length > 0;
+	const visibleHits = hits.slice(0, shown);
 	const current = visibleHits[selected]?.rom ?? null;
+	const facets = useMemo(
+		() => buildFacets(hits.map((hit) => hit.rom), scope, systemIndex),
+		[hits, scope, systemIndex],
+	);
+
+	const pickScope = useCallback((next: Scope | null) => {
+		setScope(next);
+		setOpen(null);
+		requestAnimationFrame(() => inputRef.current?.focus());
+	}, []);
 
 	const openRom = useCallback((rom: RomEntry) => {
 		setOpen(rom);
@@ -108,6 +145,8 @@ export default function App() {
 
 	const clear = () => {
 		setQuery("");
+		setScope(null);
+		setSort("best");
 		setOpen(null);
 		requestAnimationFrame(() => inputRef.current?.focus());
 	};
@@ -122,7 +161,7 @@ export default function App() {
 		} else if (event.key === "Enter" && current) {
 			openRom(current);
 		} else if (event.key === "Escape") {
-			if (query) clear();
+			if (query || scope) clear();
 			else inputRef.current?.blur();
 		}
 	};
@@ -151,7 +190,7 @@ export default function App() {
 		return () => window.removeEventListener("keydown", onKeyDown);
 	}, [current, move, open, openRom]);
 
-	const active = query.trim().length > 0;
+	const active = query.trim().length > 0 || scope !== null;
 	return (
 		<div className="atmosphere min-h-screen">
 			<header className={`z-20 transition-[padding,background-color] duration-150 ease-out ${active ? "sticky top-0 bg-[#0c0d0b]/90 py-4 backdrop-blur-md" : "relative pt-[22vh] sm:pt-[24vh]"}`}>
@@ -183,23 +222,36 @@ export default function App() {
 				</main>
 			) : null}
 
+			{!loadError && !active && roms.length > 0 && <SystemPicker index={systemIndex} onPick={pickScope} />}
+
 			{!loadError && active && (
-				<main className="fade-in mx-auto max-w-3xl px-5 pb-16 pt-8 sm:px-8">
+				<main className="fade-in mx-auto max-w-3xl px-5 pb-24 pt-8 sm:px-8">
 					<div className="mb-4 flex items-center justify-between text-[10px] uppercase tracking-[0.12em] text-neutral-600">
 						<span>{roms.length ? `${hits.length.toLocaleString()} ${hits.length === 1 ? "match" : "matches"}` : status}</span>
-						<span className="hidden sm:inline">{roms.length && hits.length > MAX_RESULTS ? `showing first ${MAX_RESULTS} / ` : ""}up/down to select / enter to open</span>
+						<span className="hidden sm:inline">up/down to select / enter to open</span>
 					</div>
+
+					{roms.length > 0 && (
+						<FilterBar facets={facets} hasTerms={hasTerms} index={systemIndex} onScope={pickScope} onSort={setSort} scope={scope} sort={sort} />
+					)}
 
 					{roms.length === 0 ? (
 						<div className="border-t border-neutral-900 py-14"><p className="text-[13px] text-neutral-400">Loading the data index...</p></div>
 					) : hits.length ? (
-						<ul className="border-t border-neutral-900" key={deferredQuery}>
-							{visibleHits.map((hit, index) => <ResultItem hit={hit} index={index} key={hit.rom.id} onHover={() => setSelected(index)} onOpen={() => openRom(hit.rom)} ref={(element) => { itemRefs.current[index] = element; }} selected={selected === index} />)}
-						</ul>
+						<>
+							<ul className="border-t border-neutral-900" key={`${deferredQuery}|${scopeId}|${sort}`}>
+								{visibleHits.map((hit, index) => <ResultItem hit={hit} index={index} key={hit.rom.id} onHover={() => setSelected(index)} onOpen={() => openRom(hit.rom)} ref={(element) => { itemRefs.current[index] = element; }} selected={selected === index} />)}
+							</ul>
+							{hits.length > shown && (
+								<button className="mt-6 border-b border-neutral-600 pb-1 text-[11px] text-neutral-400 transition-colors hover:border-acc hover:text-acc" onClick={() => setShown((count) => count + PAGE_SIZE * 2)} type="button">
+									show {Math.min(PAGE_SIZE * 2, hits.length - shown).toLocaleString()} more ({(hits.length - shown).toLocaleString()} left) ↓
+								</button>
+							)}
+						</>
 					) : (
 						<div className="border-t border-neutral-900 py-14">
 							<p className="text-[13px] text-neutral-400">No games found in the shared index.</p>
-							<p className="mt-3 text-[11px] text-neutral-700">Try a title, p:n64, c:nintendo, or y:199x.</p>
+							<p className="mt-3 text-[11px] text-neutral-700">Try a title, p:psp, or c:nintendo{scope ? ", or clear the system filter" : ""}.</p>
 						</div>
 					)}
 				</main>

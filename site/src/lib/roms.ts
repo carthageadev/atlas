@@ -1,3 +1,5 @@
+import { fold as normalize, hasSystemAlias, inScope, platformMatches, type Scope } from "./systems";
+
 export interface RomEntry {
 	/** Path on the source, for example "/Nintendo/Wii/Wii Sports (USA).7z". */
 	id: string;
@@ -210,13 +212,6 @@ const FILTER_KEYS: Record<string, "platform" | "company" | "year"> = {
 	year: "year",
 };
 
-function normalize(value: string): string {
-	return value
-		.normalize("NFD")
-		.replace(/[\u0300-\u036f]/g, "")
-		.toLowerCase();
-}
-
 function parseYear(value: string): ParsedQuery["year"] | null {
 	let match = value.match(/^(\d{4})$/);
 	if (match) return { min: Number(match[1]), max: Number(match[1]), raw: value };
@@ -291,29 +286,6 @@ function dateYear(rom: RomEntry): number | null {
 	return year ? Number(year) : null;
 }
 
-const PLATFORM_ALIASES: Record<string, string[]> = {
-	nes: ["nes", "famicom"],
-	n64: ["n64", "nintendo 64", "nintendo64"],
-	snes: ["snes", "super famicom"],
-	gcn: ["gcn", "gc", "ngc", "gamecube"],
-	gb: ["gb", "game boy"],
-	gbc: ["gbc", "game boy color"],
-	gba: ["gba", "game boy advance"],
-	nds: ["nds", "ds"],
-	sms: ["sms", "master system"],
-	md: ["md", "genesis", "mega drive"],
-	pce: ["pce", "pc engine", "turbografx"],
-	ps1: ["ps1", "psx", "playstation"],
-	ps2: ["ps2", "playstation 2"],
-};
-
-function matchesPlatform(rom: RomEntry, platform: string): boolean {
-	const consoleName = normalize(rom.console);
-	const company = normalize(rom.company);
-	const aliases = PLATFORM_ALIASES[platform] ?? [platform];
-	return aliases.some((alias) => consoleName === alias || consoleName.includes(alias) || company === alias);
-}
-
 function markTitle(title: string, term: string, highlight: boolean[]): void {
 	const lowerTitle = title.toLowerCase();
 	const lowerTerm = term.toLowerCase();
@@ -356,8 +328,14 @@ function buildSpecialQuery(text: string): SpecialQuery | null {
 
 function scoreRom(rom: RomEntry, parsed: ParsedQuery, metaHits: RomHit["metaHits"], special: SpecialQuery | null): number {
 	let score = 0;
+	const searchText = rom.searchText || `${normalize(rom.title)} ${normalize(rom.company)} ${normalize(rom.console)} ${normalize(rom.folder)}`;
+	if (!special) {
+		// Most roms fail here, so reject them before the costlier title folding below.
+		for (const term of parsed.terms) {
+			if (!searchText.includes(term) && !hasSystemAlias(rom, term)) return -1;
+		}
+	}
 	const title = normalize(rom.title);
-	const searchText = rom.searchText || `${title} ${normalize(rom.company)} ${normalize(rom.console)} ${normalize(rom.folder)}`;
 
 	if (special) {
 		const strict = special.patterns.some((pattern) => pattern.test(searchText));
@@ -371,9 +349,11 @@ function scoreRom(rom: RomEntry, parsed: ParsedQuery, metaHits: RomHit["metaHits
 		}
 	} else {
 		for (const term of parsed.terms) {
-			if (!searchText.includes(term)) return -1;
 			if (title === term) score += 1000;
-			else if (title.startsWith(term)) score += 500;
+			else if (hasSystemAlias(rom, term)) {
+				score += 600;
+				metaHits.add("console");
+			} else if (title.startsWith(term)) score += 500;
 			else if (title.includes(term)) score += 250;
 			else if (normalize(rom.console).includes(term)) {
 				score += 80;
@@ -387,7 +367,7 @@ function scoreRom(rom: RomEntry, parsed: ParsedQuery, metaHits: RomHit["metaHits
 		}
 	}
 
-	if (parsed.platforms.some((platform) => !matchesPlatform(rom, platform))) return -1;
+	if (parsed.platforms.some((platform) => !platformMatches(rom, platform))) return -1;
 	if (parsed.platforms.length) score += 100;
 
 	for (const company of parsed.companies) {
@@ -407,20 +387,56 @@ function scoreRom(rom: RomEntry, parsed: ParsedQuery, metaHits: RomHit["metaHits
 	return score;
 }
 
-export function searchRoms(roms: RomEntry[], query: string): RomSearchResult {
+export type SortMode = "best" | "az" | "size" | "added";
+
+export interface SearchOptions {
+	scope?: Scope | null;
+	sort?: SortMode;
+}
+
+const NO_HIGHLIGHT: boolean[] = [];
+const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+const SIZE_UNITS: Record<string, number> = { B: 1, K: 1024, M: 1024 ** 2, G: 1024 ** 3, T: 1024 ** 4 };
+
+/** "1,009.91 KB" to bytes, or 0 when the size is missing. */
+export function sizeBytes(size: string | undefined): number {
+	const match = size?.replace(/,/g, "").match(/^([\d.]+)\s*([BKMGT])/i);
+	return match ? Number(match[1]) * (SIZE_UNITS[match[2].toUpperCase()] ?? 0) : 0;
+}
+
+function sortHits(hits: RomHit[], mode: SortMode, hasTerms: boolean): void {
+	const byTitle = (a: RomHit, b: RomHit) => collator.compare(a.rom.title, b.rom.title) || (a.rom.id < b.rom.id ? -1 : 1);
+	if (mode === "best" && hasTerms) {
+		hits.sort((a, b) => b.score - a.score || byTitle(a, b));
+	} else if (mode === "size") {
+		const bytes = new Map(hits.map((hit) => [hit, sizeBytes(hit.rom.size)]));
+		hits.sort((a, b) => (bytes.get(b) ?? 0) - (bytes.get(a) ?? 0) || byTitle(a, b));
+	} else if (mode === "added") {
+		hits.sort((a, b) => (b.rom.date ?? "").localeCompare(a.rom.date ?? "") || byTitle(a, b));
+	} else {
+		hits.sort(byTitle);
+	}
+}
+
+export function searchRoms(roms: RomEntry[], query: string, options: SearchOptions = {}): RomSearchResult {
 	const started = performance.now();
 	const parsed = parseQuery(query);
 	const special = buildSpecialQuery(parsed.text);
+	const scope = options.scope ?? null;
 	const hits: RomHit[] = [];
 	for (const rom of roms) {
+		if (scope && !inScope(rom, scope)) continue;
 		const metaHits: RomHit["metaHits"] = new Set();
 		const score = scoreRom(rom, parsed, metaHits, special);
 		if (score < 0) continue;
-		const hl = new Array<boolean>(rom.title.length).fill(false);
 		const highlightTerms = special?.fragments ?? parsed.terms;
-		for (const term of highlightTerms) markTitle(rom.title, term, hl);
+		let hl = NO_HIGHLIGHT;
+		if (highlightTerms.length) {
+			hl = new Array<boolean>(rom.title.length).fill(false);
+			for (const term of highlightTerms) markTitle(rom.title, term, hl);
+		}
 		hits.push({ rom, score, hl, metaHits });
 	}
-	hits.sort((a, b) => b.score - a.score || a.rom.title.localeCompare(b.rom.title));
+	sortHits(hits, options.sort ?? "best", parsed.terms.length > 0);
 	return { hits, parsed, ms: performance.now() - started };
 }

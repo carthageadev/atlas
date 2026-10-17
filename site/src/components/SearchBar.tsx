@@ -44,7 +44,7 @@ export function SearchBar({ value, onChange, onKeyDown, inputRef, active }: Prop
 			<span className="mr-4 select-none text-base text-acc">&gt;</span>
 			<div className="relative h-full min-w-0 flex-1 text-[15px]">
 				<div aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center overflow-hidden whitespace-pre" ref={overlayRef}>
-					{value ? <QueryText value={value} /> : <span className="text-neutral-600">search games by name / p:n64 / c:nintendo</span>}
+					{value ? <QueryText value={value} /> : <span className="text-neutral-600">search games by name / p:psp / c:nintendo</span>}
 				</div>
 				<input
 					aria-label="Search the shared ROM index"
