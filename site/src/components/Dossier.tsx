@@ -29,8 +29,8 @@ export function Dossier({ rom }: { rom: RomEntry }) {
 			<dl className="mt-9 grid grid-cols-2 gap-x-8 gap-y-7 border-y border-neutral-800 py-7 sm:grid-cols-3">
 				<Datum label="system" value={rom.console || "unknown"} />
 				<Datum label="maker" value={rom.company || "unknown"} />
-				<Datum label="size" value={rom.size || "—"} />
-				<Datum label="date" value={rom.date || "—"} />
+				<Datum label="size" value={rom.size || "-"} />
+				<Datum label="date" value={rom.date || "-"} />
 				<Datum label="path" value={rom.folder} />
 				<Datum label="record id" value={crc32(rom.id)} />
 			</dl>
